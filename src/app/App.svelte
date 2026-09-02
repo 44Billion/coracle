@@ -17,7 +17,7 @@
   import {ready} from "src/engine"
   import * as engine from "src/engine"
   import * as domain from "src/domain"
-  import {loadUserData} from "src/app/state"
+  import {loadUserData, startManagedAutoLogin} from "src/app/state"
   import {themeVariables, appName} from "src/partials/state"
   import Toast from "src/partials/Toast.svelte"
   import ChatEnable from "src/app/views/ChatEnable.svelte"
@@ -440,6 +440,8 @@
     // Finish nstart login
     // @ts-ignore
     window.nostrLogin?.()
+
+    startManagedAutoLogin()
 
     if ($session) {
       loadUserData()

@@ -18,6 +18,8 @@ import {
   loadUserFollowList,
   loadUserMuteList,
   getFollows,
+  session,
+  loginWithNip07,
 } from "@welshman/app"
 import {appDataKeys} from "src/util/nostr"
 import {router} from "src/app/util/router"
@@ -111,3 +113,33 @@ export const boot = () => {
   router.at("login/connect").open({noEscape: true, mini: true})
   setChecked("*")
 }
+
+let managedLoginPending = false
+
+const restoreManagedLogin = async () => {
+  if (get(session) || managedLoginPending) return
+
+  const peekPublicKey = (
+    (window as Window & {
+      nostr?: {peekPublicKey?: () => Promise<string | undefined>}
+    }).nostr
+  )?.peekPublicKey
+  if (typeof peekPublicKey !== "function") return
+
+  managedLoginPending = true
+  try {
+    const pubkey = await peekPublicKey.call((window as any).nostr)
+    if (!/^[0-9a-f]{64}$/.test(pubkey || "") || get(session)) return
+    loginWithNip07(pubkey!)
+    await loadUserData()
+  } catch {
+    // Silent discovery must never change the normal login experience.
+  } finally {
+    managedLoginPending = false
+  }
+}
+
+export const startManagedAutoLogin = () =>
+  session.subscribe(current => {
+    if (!current) void restoreManagedLogin()
+  })
